@@ -200,6 +200,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
   .word{font-size:18px}
   .cal-frame{height:900px}
 }
+@media (hover:none){.sol,.dock{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(10,14,21,.88)}.dock{background:rgba(10,14,21,.9)}}
 @media (prefers-reduced-motion:reduce){.cv,.btn,.pain,.bar i{transition:none}}
 </style>
 
@@ -410,7 +411,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
   var MAP = [[0, 0], [0.06, 0], [0.2, 0.25], [0.3, 0.25], [0.44, 0.5], [0.54, 0.5], [0.68, 0.75], [0.78, 0.75], [0.92, 1], [1, 1]];
   var HOLD = [[0, 0.06], [0.2, 0.3], [0.44, 0.54], [0.68, 0.78], [0.92, 1]];
   var REST = [0.02, 0.25, 0.49, 0.73, 0.965];
-  var LOGO_BASE = 0.676, AHEAD = 36, BEHIND = 12, KEEP_A = 56, KEEP_B = 24, FETCH_PAR = 6, DECODE_PAR = 3;
+  var LOGO_BASE = 0.676, AHEAD = 36, BEHIND = 12, KEEP_A = 56, KEEP_B = 24, FETCH_PAR = 8, DECODE_PAR = 4;
+  var TIER = '', TOUCH = window.matchMedia && matchMedia('(hover: none)').matches;
   function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
   function seg(p, a, b) { return clamp((p - a) / (b - a), 0, 1); }
   function smooth(t) { return t * t * (3 - 2 * t); }
@@ -420,24 +422,28 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
     return 1;
   }
   function inHold(s) { for (var i = 0; i < HOLD.length; i++) if (s >= HOLD[i][0] - 0.003 && s <= HOLD[i][1] + 0.003) return true; return false; }
-  function pairUrl(p) { return 'f/p' + String(p).padStart(3, '0') + '.webp'; }
+  function frameUrl(i) { return 'f/' + TIER + '/' + String(i).padStart(3, '0') + '.webp'; }
   var $ = function (id) { return document.getElementById(id); };
 
   var film = document.querySelector('.film'), cv = $('cv'), ctx = cv.getContext('2d', { alpha: false });
   var els = { hero: $('hero'), word: $('word'), s1: $('s1'), s2: $('s2'), s3: $('s3'), fin: $('fin'), dock: $('dock') };
   var load = $('load');
-  var PAIRS = TOTAL / 2, blobs = new Array(PAIRS), fState = new Uint8Array(PAIRS), nFetching = 0, nFetched = 0;
+  var blobs = new Array(TOTAL), fState = new Uint8Array(TOTAL), nFetching = 0, nFetched = 0;
   var bmps = {}, decoding = {}, nDecoding = 0, evict = 0;
   var cur = 0, target = 0, dir = 1, lastScrollAt = 0, snap = null, touching = false, lastKey = '', dirty = true, loopOn = false, last = 0;
-  var css = {}, decW = 1920, decH = 1080, nowIdx = -1, filmH = 0;
+  var css = {}, nowIdx = -1, filmH = 0;
 
   function sizeFilm() {
     var h = window.innerHeight;
     if (!filmH || Math.abs(h * 15 - filmH) > 180 * 15 || window.innerWidth !== sizeFilm.w) { filmH = Math.round(h * 15); film.style.height = filmH + 'px'; }
     sizeFilm.w = window.innerWidth;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2), need = Math.max(window.innerWidth, h * 16 / 9) * dpr;
-    var small = need <= 1400 || window.innerWidth < 700;
-    decW = small ? 1280 : 1920; decH = small ? 720 : 1080;
+    if (TIER) return;
+    var w = window.innerWidth, dpr = Math.min(window.devicePixelRatio || 1, 2), short = Math.min(w, h);
+    var need = (w / h < 0.95 ? w / 0.6 : Math.max(w, h * 16 / 9)) * dpr;
+    TIER = need > 1500 ? 'h' : need > 1000 ? 'm' : 's';
+    if (short < 600) TIER = 's';                       // phones
+    else if (TOUCH && short < 1100 && TIER === 'h') TIER = 'm'; // tablets
+    if (short < 600 || (navigator.deviceMemory && navigator.deviceMemory <= 4)) { AHEAD = 22; BEHIND = 8; KEEP_A = 34; KEEP_B = 12; DECODE_PAR = 3; FETCH_PAR = 6; }
   }
   function scrollS() {
     var r = film.getBoundingClientRect(), range = r.height - window.innerHeight;
@@ -445,40 +451,36 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
   }
   function frameAt(s) { return mapS(s) * (TOTAL - 1); }
   function pumpFetch() {
-    var c = Math.round(frameAt(target) / 2);
+    var c = Math.round(frameAt(target));
     while (nFetching < FETCH_PAR) {
       var pick = -1;
-      for (var k = 0; k < PAIRS && pick < 0; k++) { var a = c + k, b = c - k; if (a < PAIRS && !fState[a]) pick = a; else if (b >= 0 && !fState[b]) pick = b; }
+      for (var k = 0; k < TOTAL && pick < 0; k++) { var a = c + (dir > 0 ? k : -k), b = c - (dir > 0 ? k : -k); if (a >= 0 && a < TOTAL && !fState[a]) pick = a; else if (k < 8 && b >= 0 && b < TOTAL && !fState[b]) pick = b; }
       if (pick < 0) break;
       (function (p) {
         fState[p] = 1; nFetching++;
-        fetch(pairUrl(p)).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        fetch(frameUrl(p)).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
           .then(function (bl) { blobs[p] = bl; fState[p] = 2; nFetched++; })
           .catch(function () { fState[p] = 0; })
-          .then(function () { nFetching--; load.style.setProperty('--p', (nFetched / PAIRS).toFixed(3)); if (nFetched >= PAIRS) load.style.opacity = '0'; wake(); });
+          .then(function () { nFetching--; load.style.setProperty('--p', (nFetched / TOTAL).toFixed(3)); if (nFetched >= TOTAL) load.style.opacity = '0'; wake(); });
       })(pick);
     }
   }
   function decodeOne(i) {
-    var bl = blobs[i >> 1], sx = (i & 1) * FW;
+    var bl = blobs[i];
     decoding[i] = true; nDecoding++;
     var p;
-    if (window.createImageBitmap) {
-      p = createImageBitmap(bl, sx, 0, FW, FH, { resizeWidth: decW, resizeHeight: decH, resizeQuality: 'high' })
-        .catch(function () { return createImageBitmap(bl, sx, 0, FW, FH); });
-    } else {
-      p = new Promise(function (res, rej) {
-        var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = FW; c.height = FH; c.getContext('2d').drawImage(im, sx, 0, FW, FH, 0, 0, FW, FH); res(c); }; im.onerror = rej; im.src = URL.createObjectURL(bl);
-      });
-    }
+    if (window.createImageBitmap) p = createImageBitmap(bl);
+    else p = new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = URL.createObjectURL(bl); });
     p.then(function (b) { bmps[i] = b; dirty = true; }).catch(function () {}).then(function () { delete decoding[i]; nDecoding--; wake(); });
   }
-  function ensureDecodes(c) {
+  function ensureDecodes(c, t) {
     var order = [c, c + 1];
+    var gap = t - c;
+    if (Math.abs(gap) > 6) { var st = Math.max(2, Math.round(Math.abs(gap) / 8)), sg = gap > 0 ? 1 : -1; for (var q = st; q < Math.abs(gap); q += st) order.push(c + sg * q); order.push(t, t + sg); }
     for (var k = 1; k <= AHEAD; k++) { order.push(dir > 0 ? c + 1 + k : c - k); if (k <= BEHIND) order.push(dir > 0 ? c - k : c + 1 + k); }
     for (var j = 0; j < order.length && nDecoding < DECODE_PAR; j++) {
       var i = order[j];
-      if (i < 0 || i >= TOTAL || bmps[i] || decoding[i] || !blobs[i >> 1]) continue;
+      if (i < 0 || i >= TOTAL || bmps[i] || decoding[i] || !blobs[i]) continue;
       decodeOne(i);
     }
     if (++evict % 20 === 0) {
@@ -564,12 +566,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
         target = scrollS();
         if (t >= 1) snap = null;
       } else maybeSnap(now);
-      var k = 1 - Math.exp(-dt / 95);
+      var k = 1 - Math.exp(-dt / (TOUCH ? 55 : 90));
       cur += (target - cur) * k;
       if (Math.abs(target - cur) < 0.00008) cur = target;
       var x = frameAt(cur);
-      draw(x); overlays(cur); ensureDecodes(Math.floor(x));
-      if (nFetching < FETCH_PAR && nFetched < PAIRS) pumpFetch();
+      draw(x); overlays(cur); ensureDecodes(Math.floor(x), Math.round(frameAt(target)));
+      if (nFetching < FETCH_PAR && nFetched < TOTAL) pumpFetch();
     } catch (e) { if (window.console) console.error(e); }
     var busy = snap || cur !== target || dirty || nDecoding > 0 || (lastScrollAt && now - lastScrollAt < 400);
     if (busy) requestAnimationFrame(loop); else loopOn = false;
