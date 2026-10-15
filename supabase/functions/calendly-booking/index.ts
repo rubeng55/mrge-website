@@ -141,31 +141,58 @@ async function checkAvailability(args: any) {
   return out;
 }
 
+function e164(phone: string) {
+  const d = String(phone || "").replace(/\D/g, "");
+  if (d.length === 10) return "+1" + d;
+  if (d.length === 11 && d.startsWith("1")) return "+" + d;
+  return "";
+}
+
 async function bookCall(args: any) {
   const et = await getEventType();
   if (!args?.start_time || !args?.name || !args?.email) return { booked: false, message: "Need start_time, name and email before booking." };
-  const qa = [
+  const email = String(args.email).trim().toLowerCase().replace(/\s+/g, "");
+  if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(email)) return { booked: false, message: "That email doesn't look complete. Ask the caller to spell it again." };
+  // Normalise start_time to the exact UTC form Calendly returned (e.g. 2026-10-20T20:30:00Z)
+  const st = new Date(args.start_time);
+  if (isNaN(st.getTime())) return { booked: false, message: "The time was unclear. Check availability again and use the exact start_time." };
+  const start_time = st.toISOString().replace(/\.\d{3}Z$/, "Z");
+  const qaAll = [
     { question: "Anything we should know? What's eating most of your time right now?", answer: args.notes || "", position: 0 },
     { question: "Business name", answer: args.business_name || "", position: 1 },
     { question: "Phone number", answer: args.phone || "", position: 2 },
     { question: "What are you interested in?", answer: args.interested_in || "Booked by phone with Nexis", position: 3 },
   ].filter((q) => q.answer);
-  try {
-    const r = await cal("/invitees", {
-      method: "POST",
-      body: JSON.stringify({
-        event_type: et,
-        start_time: args.start_time,
-        invitee: { name: args.name, email: String(args.email).trim().toLowerCase(), timezone: TZ, ...(args.phone ? { text_reminder_number: args.phone } : {}) },
-        location: { kind: "google_conference" },
-        questions_and_answers: qa,
-      }),
-    });
-    return { booked: true, when: label(args.start_time) + " Pacific", message: "Booked. A calendar invite with the Google Meet link was emailed to the caller.", reschedule_url: r?.resource?.reschedule_url };
-  } catch (e: any) {
-    if (e.status === 400 || e.status === 404 || e.status === 409) return { booked: false, message: "That time is no longer open or a detail was invalid. Check availability again and confirm the email spelling." };
-    throw e;
+  const base = { event_type: et, start_time, invitee: { name: String(args.name).trim(), email, timezone: TZ } };
+  // Try richest payload first, then fall back if Calendly rejects optional parts.
+  const attempts = [
+    { ...base, location: { kind: "google_conference" }, questions_and_answers: qaAll },
+    { ...base, location: { kind: "google_conference" } },
+    { ...base },
+  ];
+  let lastErr: any = null;
+  for (const body of attempts) {
+    try {
+      const r = await cal("/invitees", { method: "POST", body: JSON.stringify(body) });
+      return { booked: true, when: label(start_time) + " Pacific", message: "Booked. A calendar invite with the Google Meet link was emailed to the caller.", reschedule_url: r?.resource?.reschedule_url };
+    } catch (e: any) {
+      lastErr = e;
+      console.error("book_call attempt failed", e?.status, JSON.stringify(e?.body));
+      if (e?.status && e.status >= 500) break;
+      const txt = JSON.stringify(e?.body || "").toLowerCase();
+      if (/not available|no longer available|unavailable|already|taken/.test(txt)) break; // real slot conflict: don't retry
+    }
   }
+  const detail = JSON.stringify(lastErr?.body || lastErr?.message || "").slice(0, 400);
+  const conflict = /not available|no longer available|unavailable|already|taken/.test(detail.toLowerCase());
+  return {
+    booked: false,
+    reason: conflict ? "slot_taken" : "calendly_error",
+    detail,
+    message: conflict
+      ? "That time was just taken. Check availability again and offer new times."
+      : "The calendar didn't accept the booking. Don't blame the caller's email unless the detail mentions email. Take their preferred time and say Ruben will text to confirm.",
+  };
 }
 
 Deno.serve(async (req) => {
