@@ -154,7 +154,16 @@ async function bookCall(args: any) {
   const email = String(args.email).trim().toLowerCase().replace(/\s+/g, "");
   if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(email)) return { booked: false, message: "That email doesn't look complete. Ask the caller to spell it again." };
   // Normalise start_time to the exact UTC form Calendly returned (e.g. 2026-10-20T20:30:00Z)
-  const st = new Date(args.start_time);
+  // A time with no zone (e.g. "2026-10-20T13:30:00") means Pacific, not UTC.
+  let raw = String(args.start_time).trim();
+  if (!/(z|[+-]\d\d:?\d\d)$/i.test(raw)) {
+    const guess = new Date(raw + "Z");
+    const pt = new Date(guess.toLocaleString("en-US", { timeZone: TZ }));
+    const utc = new Date(guess.toLocaleString("en-US", { timeZone: "UTC" }));
+    const offMin = Math.round((utc.getTime() - pt.getTime()) / 60000);
+    raw = new Date(guess.getTime() + offMin * 60000).toISOString();
+  }
+  const st = new Date(raw);
   if (isNaN(st.getTime())) return { booked: false, message: "The time was unclear. Check availability again and use the exact start_time." };
   const start_time = st.toISOString().replace(/\.\d{3}Z$/, "Z");
   const qaAll = [
