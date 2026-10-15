@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Unsubscribe — MRGE Solutions</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#080B11;--ink:#E6ECF2;--muted:#9DAAB9;--teal:#6FC6D8}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:#7FD0E0}
+.mono{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:calc(18px + env(safe-area-inset-top,0px)) clamp(16px,4vw,48px) 18px;border-bottom:1px solid #18202B}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
+.brand svg{width:34px}
+.brand span{font-weight:300;letter-spacing:.42em;font-size:15px}
+.back{color:#C4CEDA;text-decoration:none;font-size:15px}
+main{max-width:780px;margin:0 auto;padding:clamp(40px,7vw,80px) clamp(16px,4vw,32px) 80px}
+h1{font-size:clamp(32px,4.4vw,48px);font-weight:500;letter-spacing:-.025em;line-height:1.05;margin:12px 0 8px}
+h2{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px;display:flex;gap:10px;align-items:baseline}
+h2 span{font-family:"Geist Mono",monospace;color:var(--teal)}
+p,li{color:var(--muted)}
+section{border-top:1px solid rgba(160,210,225,.14);padding:24px 0}
+ul{padding-left:20px;margin:8px 0}
+.kw{display:inline-block;margin:6px 0;padding:10px 22px;border-radius:12px;font-family:"Geist Mono",monospace;font-size:20px;letter-spacing:.2em;color:var(--teal);box-shadow:inset 0 0 0 1px rgba(111,198,216,.4)}
+.card{max-width:440px;margin:12vh auto 0;padding:36px 28px;border-radius:24px;text-align:center;background:linear-gradient(180deg,#0E131C,#0A0E15);box-shadow:inset 0 0 0 1px rgba(160,210,225,.14)}
+.card h1{font-size:28px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:999px;background:var(--ink);color:#080B11;font-weight:600;text-decoration:none;margin-top:18px}
+.spin{width:28px;height:28px;margin:10px auto;border-radius:50%;border:2px solid rgba(111,198,216,.2);border-top-color:var(--teal);animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/" aria-label="MRGE home"><svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38 L20 4 L38 38 Z" fill="none" stroke="#9FD6E3" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 38 L42 4 L60 38 Z" fill="none" stroke="#6FC6D8" stroke-width="2.4" stroke-linejoin="round"/></svg><span>MRGE</span></a>
+  <a class="back" href="/">&larr; Back to home</a>
+</header>
+<main>
+<div class="card">
+  <div id="u-load"><div class="spin"></div><p>Processing your request…</p></div>
+  <div id="u-ok" hidden><span class="mono" style="color:var(--teal)">Newsletter</span><h1>You've been unsubscribed.</h1><p>You won't receive MRGE newsletters anymore. Sorry to see you go.</p><a class="btn" href="/">Back to MRGE</a></div>
+  <div id="u-err" hidden><span class="mono" style="color:#FF9E8A">Something went wrong</span><h1>We couldn't process that link.</h1><p>It may be invalid, or you're already unsubscribed. Email <a href="mailto:team@mrgesolutions.com">team@mrgesolutions.com</a> and we'll remove you.</p><a class="btn" href="/">Back to MRGE</a></div>
+</div>
+</main>
+<script>
+(function () {
+  var URL = 'https://ljafyekywqppxwraoxjb.supabase.co', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqYWZ5ZWt5d3FwcHh3cmFveGpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MTk3MDUsImV4cCI6MjA4OTA5NTcwNX0.68Pdu9dR4bXoUML4j3hDmi6bt1UgSoujcjLjmWgHfRs';
+  var token = new URLSearchParams(location.search).get('token');
+  function show(id) { ['u-load', 'u-ok', 'u-err'].forEach(function (x) { document.getElementById(x).hidden = x !== id; }); }
+  if (!token) return show('u-err');
+  fetch(URL + '/functions/v1/newsletter-unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ token: token }) })
+    .then(function (r) { return r.json().then(function (d) { return r.ok && !(d && d.error); }); })
+    .then(function (ok) { show(ok ? 'u-ok' : 'u-err'); })
+    .catch(function () { show('u-err'); });
+})();
+</script>
+</body>
+</html>
