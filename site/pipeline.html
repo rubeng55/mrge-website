@@ -84,6 +84,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
 .ocard:hover{background:linear-gradient(180deg,rgba(154,140,255,.24),rgba(154,140,255,.09));box-shadow:inset 0 0 0 1px rgba(184,174,255,.8),0 30px 70px rgba(0,0,0,.4)}
 .ocard h3{font-size:22px;font-weight:600;letter-spacing:-.01em}
 .ocard p{color:#C3C9EA;font-size:14.5px;line-height:1.45}
+.ocard.is-link{position:relative;text-decoration:none;color:inherit;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(184,174,255,.75),0 0 0 4px rgba(154,140,255,.12),0 30px 70px rgba(0,0,0,.4)}
+.ocard.is-link:hover{transform:none;box-shadow:inset 0 0 0 1.5px #C9C1FF,0 0 0 6px rgba(154,140,255,.2),0 30px 70px rgba(0,0,0,.45)}
+.ocard .open{align-self:flex-start;margin-top:4px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#E3DEFF;background:rgba(154,140,255,.28);box-shadow:inset 0 0 0 1px rgba(184,174,255,.6)}
 .ocard .how{margin-top:auto;padding-top:10px;border-top:1px solid rgba(154,140,255,.22);color:#9AA3C9;font-size:13px}
 .ocard .how b{color:#CFC8FF;font-weight:500}
 .ocard.bonus{--cw:min(1060px,calc(100vw - 32px));min-height:0;flex-direction:row;align-items:center;justify-content:space-between;gap:20px;background:rgba(154,140,255,.07);box-shadow:inset 0 0 0 1px rgba(154,140,255,.32);border:1px dashed rgba(184,174,255,.55)}
@@ -148,6 +151,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
   .ocard h3{font-size:17px}
   .ocard p{font-size:13px}
   .ocard .how{display:none}
+  .ocard .open{padding:4px 8px;font-size:9px;margin-top:2px}
   .ocard.bonus{flex-direction:column;align-items:flex-start}
   .ocard.bonus .how{display:none}
   .ghost{margin-top:18px;gap:8px}
@@ -207,7 +211,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
         <h2>Outreach</h2>
         <p>Get attention from the right people.</p>
       </div>
-      <article class="obj ocard" id="o-c0"><h3>Warm outreach</h3><p>People who already know you. Your phone, your inbox, your past customers.</p><div class="how"><b>MRGE:</b> personal check-ins to your whole list, on autopilot.</div></article>
+      <a class="obj ocard is-link" id="o-c0" href="https://mrge-outreach.lovable.app" target="_blank" rel="noopener" aria-label="Warm outreach: open the MRGE Outreach tool"><h3>Warm outreach</h3><p>People who already know you. Your phone, your inbox, your past customers.</p><div class="how"><b>MRGE:</b> personal check-ins to your whole list, on autopilot.</div><span class="open">Open the tool <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 9L9 3M4.5 3H9v4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></a>
       <article class="obj ocard" id="o-c1"><h3>Cold outreach</h3><p>Strangers who look exactly like your best client.</p><div class="how"><b>MRGE:</b> researched lists and a personal first line for each one.</div></article>
       <article class="obj ocard" id="o-c2"><h3>Free content</h3><p>Give value in public so the right people come to you.</p><div class="how"><b>MRGE:</b> one idea turned into posts for every channel.</div></article>
       <article class="obj ocard" id="o-c3"><h3>Paid ads</h3><p>Turn money into attention, on demand.</p><div class="how"><b>MRGE:</b> every ad lead routed straight into follow-up.</div></article>
