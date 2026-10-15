@@ -174,7 +174,11 @@ async function bookCall(args: any) {
   ].filter((q) => q.answer);
   const base = { event_type: et, start_time, invitee: { name: String(args.name).trim(), email, timezone: TZ } };
   // Try richest payload first, then fall back if Calendly rejects optional parts.
+  // Text confirmation: Calendly's workflow texts the invitee when text_reminder_number is set.
+  const sms = args.text_confirmation === false ? "" : e164(args.phone);
+  const withSms = sms ? { ...base, invitee: { ...base.invitee, text_reminder_number: sms } } : null;
   const attempts = [
+    ...(withSms ? [{ ...withSms, location: { kind: "google_conference" }, questions_and_answers: qaAll }] : []),
     { ...base, location: { kind: "google_conference" }, questions_and_answers: qaAll },
     { ...base, location: { kind: "google_conference" } },
     { ...base },
@@ -183,7 +187,10 @@ async function bookCall(args: any) {
   for (const body of attempts) {
     try {
       const r = await cal("/invitees", { method: "POST", body: JSON.stringify(body) });
-      return { booked: true, when: label(start_time) + " Pacific", message: "Booked. A calendar invite with the Google Meet link was emailed to the caller.", reschedule_url: r?.resource?.reschedule_url };
+      const texted = !!(body as any).invitee?.text_reminder_number;
+      return { booked: true, when: label(start_time) + " Pacific", text_confirmation: texted,
+        message: "Booked. A calendar invite with the Google Meet link was emailed to the caller." + (texted ? " A text confirmation is going to their phone too." : " Text confirmation could not be set up, so only mention the email."),
+        reschedule_url: r?.resource?.reschedule_url };
     } catch (e: any) {
       lastErr = e;
       console.error("book_call attempt failed", e?.status, JSON.stringify(e?.body));
