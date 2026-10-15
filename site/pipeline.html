@@ -160,6 +160,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
   .gstep b{font-size:13px}.gstep span{font-size:11px}
   .after{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+@media (max-height:520px) and (orientation:landscape){.nav{padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:8px}.rail{bottom:calc(6px + env(safe-area-inset-bottom,0px));left:auto;right:10px;transform:none}}
 @media (max-width:520px){.after{grid-template-columns:minmax(0,1fr)}.nav .btn-sm{padding:0 12px}}
 @media (prefers-reduced-motion:reduce){.cue::after{animation:none}}
 </style>
@@ -360,7 +361,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offse
   /* project a world point relative to camera */
   var cam = { x: 0, y: 0, z: 0 };
   function proj(x, y, z) {
-    var d = z - cam.z, s = F / (F + d);
+    var d = z - cam.z, s = F / (F + d) * (H < 620 && W > H ? Math.max(0.58, H / 640) : 1);
     return { x: W / 2 + (x - cam.x) * s, y: H / 2 + (y - cam.y) * s, s: s, d: d };
   }
   function depthAlpha(d) {
